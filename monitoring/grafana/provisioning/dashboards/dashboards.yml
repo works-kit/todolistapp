@@ -1,0 +1,13 @@
+# apiVersion WAJIB ada — tanpa ini Grafana error:
+# "cannot unmarshal !!map into []*dashboards.configV0"
+apiVersion: 1
+
+providers:
+  - name: "todolist-dashboards"
+    orgId: 1
+    folder: "Todolist API"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards
