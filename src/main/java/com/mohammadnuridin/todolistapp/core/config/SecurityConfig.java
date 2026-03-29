@@ -15,9 +15,13 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import com.mohammadnuridin.todolistapp.core.security.JwtAuthEntryPoint;
+import com.mohammadnuridin.todolistapp.core.security.SecurityHeadersFilter;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,64 +31,71 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    @Value("${cors.allowed-origins}")
-    private String allowedOriginsRaw;
+        // private final JwtAuthFilter jwtAuthFilter;
+        private final JwtAuthEntryPoint jwtAuthEntryPoint;
+        private final SecurityHeadersFilter securityHeadersFilter;
+        // private final UserDetailsServiceImpl userDetailsService;
 
-    private static final String[] PUBLIC_ENDPOINTS = new String[] {
-            "/",
-            "/welcome",
-            "/internal/actuator/**",
-            "/v3/api-docs/**",
-            "/swagger-ui/**",
-            "/swagger-ui.html"
-    };
+        // ── CORS: inject dari application.properties / env var ────────────────
+        @Value("${cors.allowed-origins}")
+        private String allowedOriginsRaw;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated());
+        public static final String[] PUBLIC_ENDPOINTS = new String[] {
+                        "/",
+                        "/welcome",
+                        "/actuator/**",
+                        "/internal/actuator/**",
+                        "/v3/api-docs/**",
+                        "/swagger-ui/**",
+                        "/swagger-ui.html"
+        };
 
-        // ── Filter chain: SecurityHeaders → JWT → UsernamePassword ──
-        // .addFilterBefore(securityHeadersFilter,
-        // UsernamePasswordAuthenticationFilter.class)
-        // .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-        // .exceptionHandling(ex -> ex
-        // .authenticationEntryPoint(jwtAuthEntryPoint));
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                .sessionManagement(session -> session
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .authorizeHttpRequests(auth -> auth
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                                                .requestMatchers("/admin/**").hasRole("ADMIN")
+                                                .anyRequest().authenticated())
 
-        return http.build();
-    }
+                                // ── Filter chain: SecurityHeaders → JWT → UsernamePassword ──
+                                .addFilterBefore(securityHeadersFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
+                                // .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                                .exceptionHandling(ex -> ex
+                                                .authenticationEntryPoint(jwtAuthEntryPoint));
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
+                return http.build();
+        }
 
-        List<String> origins = Arrays.stream(allowedOriginsRaw.split(","))
-                .map(String::trim)
-                .toList();
-        config.setAllowedOrigins(origins);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        // config.setAllowedHeaders(List.of("*"));
-        config.setAllowedHeaders(
-                List.of("Authorization", "Content-Type", "Accept-Language", "X-Client-Type"));
-        config.setExposedHeaders(List.of("Authorization"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration config = new CorsConfiguration();
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-        return source;
-    }
+                List<String> origins = Arrays.stream(allowedOriginsRaw.split(","))
+                                .map(String::trim)
+                                .toList();
+                config.setAllowedOrigins(origins);
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+                // config.setAllowedHeaders(List.of("*"));
+                config.setAllowedHeaders(
+                                List.of("Authorization", "Content-Type", "Accept-Language", "X-Client-Type"));
+                config.setExposedHeaders(List.of("Authorization"));
+                config.setAllowCredentials(true);
+                config.setMaxAge(3600L);
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
-    }
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/api/**", config);
+                return source;
+        }
+
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder(12);
+        }
 }

@@ -39,8 +39,6 @@ CREATE TABLE users (
     password VARCHAR(255) NOT NULL,
     role ENUM('USER', 'ADMIN') NOT NULL DEFAULT 'USER',
     pic_profile_id CHAR(36) NULL DEFAULT NULL COMMENT 'FK ke file_uploads.id',
-    refresh_token VARCHAR(512) NULL DEFAULT NULL,
-    refresh_token_expired_at BIGINT NULL DEFAULT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     deleted_at TIMESTAMP NULL DEFAULT NULL COMMENT 'Soft delete timestamp',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
