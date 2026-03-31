@@ -6,7 +6,12 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -21,7 +26,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.mohammadnuridin.todolistapp.core.security.JwtAuthEntryPoint;
+import com.mohammadnuridin.todolistapp.core.security.JwtAuthFilter;
 import com.mohammadnuridin.todolistapp.core.security.SecurityHeadersFilter;
+import com.mohammadnuridin.todolistapp.modules.auth.service.impl.UserDetailsServiceImpl;
 
 import lombok.RequiredArgsConstructor;
 
@@ -31,10 +38,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-        // private final JwtAuthFilter jwtAuthFilter;
+        private final JwtAuthFilter jwtAuthFilter;
         private final JwtAuthEntryPoint jwtAuthEntryPoint;
         private final SecurityHeadersFilter securityHeadersFilter;
-        // private final UserDetailsServiceImpl userDetailsService;
+        private final UserDetailsServiceImpl userDetailsService;
 
         // ── CORS: inject dari application.properties / env var ────────────────
         @Value("${cors.allowed-origins}")
@@ -43,6 +50,8 @@ public class SecurityConfig {
         public static final String[] PUBLIC_ENDPOINTS = new String[] {
                         "/",
                         "/welcome",
+                        "/auth/login",
+                        "/auth/refresh-token", // ← refresh tidak butuh JWT
                         "/actuator/**",
                         "/internal/actuator/**",
                         "/v3/api-docs/**",
@@ -66,7 +75,7 @@ public class SecurityConfig {
                                 // ── Filter chain: SecurityHeaders → JWT → UsernamePassword ──
                                 .addFilterBefore(securityHeadersFilter,
                                                 UsernamePasswordAuthenticationFilter.class)
-                                // .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                                 .exceptionHandling(ex -> ex
                                                 .authenticationEntryPoint(jwtAuthEntryPoint));
 
@@ -92,6 +101,13 @@ public class SecurityConfig {
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/api/**", config);
                 return source;
+        }
+
+        @Bean
+        public AuthenticationManager authenticationManager(PasswordEncoder passwordEncoder) {
+                DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+                provider.setPasswordEncoder(passwordEncoder);
+                return new ProviderManager(provider);
         }
 
         @Bean

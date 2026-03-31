@@ -12,6 +12,7 @@ import com.mohammadnuridin.todolistapp.core.exception.ErrorCode;
 public final class CookieUtil {
 
     public static final String REFRESH_TOKEN_COOKIE = "refresh_token";
+    public static final String SESSION_ID_COOKIE = "session_id";
     private static final String COOKIE_PATH = "/api/auth";
 
     private CookieUtil() {
@@ -64,5 +65,35 @@ public final class CookieUtil {
                 .map(Cookie::getValue)
                 .findFirst()
                 .orElseThrow(() -> new AppException(ErrorCode.REFRESH_TOKEN_INVALID));
+    }
+
+    public static void clearSessionIdCookie(HttpServletResponse response) {
+        response.addHeader("Set-Cookie",
+                SESSION_ID_COOKIE + "="
+                        + "; Max-Age=0"
+                        + "; Path=" + COOKIE_PATH
+                        + "; HttpOnly"
+                        + "; SameSite=Lax");
+    }
+
+    public static void setSessionIdCookie(HttpServletResponse response, String sessionId, long refreshTtlSec) {
+        response.addHeader("Set-Cookie",
+                SESSION_ID_COOKIE + "=" + sessionId
+                        + "; Max-Age=" + refreshTtlSec
+                        + "; Path=" + COOKIE_PATH
+                        + "; HttpOnly"
+                        + "; SameSite=Lax");
+    }
+
+    public static String extractSessionIdFromCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies == null) {
+            throw new AppException(ErrorCode.TOKEN_INVALID);
+        }
+        return Arrays.stream(cookies)
+                .filter(c -> SESSION_ID_COOKIE.equals(c.getName()))
+                .map(Cookie::getValue)
+                .findFirst()
+                .orElseThrow(() -> new AppException(ErrorCode.TOKEN_INVALID));
     }
 }

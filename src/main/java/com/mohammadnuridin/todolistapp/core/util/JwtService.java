@@ -37,11 +37,11 @@ public class JwtService {
     }
 
     // ── Generate Refresh Token ────────────────────────────────
-    public String generateRefreshToken(UserDetails userDetails) {
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("type", "refresh");
-        return buildToken(claims, userDetails.getUsername(), refreshTokenExpiration);
-    }
+    // public String generateRefreshToken(UserDetails userDetails) {
+    // Map<String, Object> claims = new HashMap<>();
+    // claims.put("type", "refresh");
+    // return buildToken(claims, userDetails.getUsername(), refreshTokenExpiration);
+    // }
 
     // ── Extract email (subject) ───────────────────────────────
     public String extractEmail(String token) {
